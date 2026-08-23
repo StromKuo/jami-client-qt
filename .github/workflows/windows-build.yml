@@ -1,0 +1,61 @@
+name: Windows build (fork CI)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-2022
+
+    steps:
+      - name: Check out the fork CI branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Qt
+        id: qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.10.3'
+          arch: win64_msvc2022_64
+          modules: 'qtwebengine qtmultimedia qtnetworkauth qtwebchannel qtwebsockets qtwebview qt5compat qtpositioning'
+          cache: true
+
+      - name: Install build dependencies
+        shell: pwsh
+        run: python build.py --dependencies --assume-yes
+
+      - name: Initialize and build Jami
+        shell: pwsh
+        env:
+          QT_PATH: ${{ steps.qt.outputs.dir }}
+        run: |
+          python build.py --init --qt "$env:QT_PATH"
+          python build.py --install --qt "$env:QT_PATH"
+
+      - name: Create portable archive
+        shell: pwsh
+        run: |
+          $releaseDir = Join-Path $env:GITHUB_WORKSPACE 'x64\Release'
+          if (-not (Test-Path $releaseDir)) {
+            throw "Build output not found: $releaseDir"
+          }
+          Compress-Archive -Path (Join-Path $releaseDir '*') `
+            -DestinationPath (Join-Path $env:RUNNER_TEMP 'jami-windows-x64.zip')
+
+      - name: Upload portable build
+        uses: actions/upload-artifact@v4
+        with:
+          name: jami-windows-x64
+          path: ${{ runner.temp }}/jami-windows-x64.zip
+          if-no-files-found: error
