@@ -32,9 +32,9 @@ jobs:
           modules: 'qtwebengine qtmultimedia qtnetworkauth qtwebchannel qtwebsockets qtwebview qt5compat qtpositioning'
           cache: true
 
-      - name: Install build dependencies
+      - name: Install Windows build dependencies
         shell: pwsh
-        run: python build.py --dependencies --assume-yes
+        run: pwsh -NoProfile -ExecutionPolicy Bypass -File extras/scripts/install-deps-windows.ps1
 
       - name: Install pywinmake
         shell: pwsh
