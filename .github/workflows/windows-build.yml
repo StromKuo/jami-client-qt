@@ -37,11 +37,27 @@ jobs:
         run: pwsh -NoProfile -ExecutionPolicy Bypass -File extras/scripts/install-deps-windows.ps1
 
       - name: Install pywinmake
+        id: pywinmake
         shell: pwsh
         run: |
           $pywinmakeDir = Join-Path $env:RUNNER_TEMP 'pywinmake'
           git clone --depth 1 https://review.jami.net/pywinmake $pywinmakeDir
           python -m pip install $pywinmakeDir
+
+          $commit = git -C $pywinmakeDir rev-parse HEAD
+          "commit=$commit" >> $env:GITHUB_OUTPUT
+
+      - name: Cache daemon source archives
+        uses: actions/cache@v4
+        with:
+          path: daemon/contrib/tarballs
+          key: windows-2022-x64-daemon-tarballs-${{ hashFiles('daemon/contrib/src/**', 'daemon/contrib/*.mak') }}
+
+      - name: Cache daemon compiled dependencies
+        uses: actions/cache@v4
+        with:
+          path: daemon/contrib/build
+          key: windows-2022-x64-daemon-build-${{ steps.pywinmake.outputs.commit }}-${{ hashFiles('daemon/contrib/src/**', 'daemon/contrib/*.mak', 'daemon/extras/scripts/winmake.py') }}
 
       - name: Initialize and build Jami
         shell: pwsh
