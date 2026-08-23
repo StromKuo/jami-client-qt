@@ -36,6 +36,13 @@ jobs:
         shell: pwsh
         run: python build.py --dependencies --assume-yes
 
+      - name: Install pywinmake
+        shell: pwsh
+        run: |
+          $pywinmakeDir = Join-Path $env:RUNNER_TEMP 'pywinmake'
+          git clone --depth 1 https://review.jami.net/pywinmake $pywinmakeDir
+          python -m pip install $pywinmakeDir
+
       - name: Initialize and build Jami
         shell: pwsh
         run: |
