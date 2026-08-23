@@ -32,9 +32,56 @@ jobs:
           modules: 'qtwebengine qtmultimedia qtnetworkauth qtwebchannel qtwebsockets qtwebview qt5compat qtpositioning'
           cache: true
 
-      - name: Install Windows build dependencies
+      - name: Install assembler tools
         shell: pwsh
-        run: pwsh -NoProfile -ExecutionPolicy Bypass -File extras/scripts/install-deps-windows.ps1
+        run: |
+          $toolRoot = Join-Path $env:RUNNER_TEMP 'jami-assembler-tools'
+          New-Item -ItemType Directory -Force -Path $toolRoot | Out-Null
+
+          $visualTools = @(
+            @{
+              Name = 'VSNASM'
+              Url = 'https://github.com/ShiftMediaProject/VSNASM/releases/download/0.8/VSNASM.zip'
+            },
+            @{
+              Name = 'VSYASM'
+              Url = 'https://github.com/ShiftMediaProject/VSYASM/releases/download/0.7/VSYASM.zip'
+            }
+          )
+
+          foreach ($tool in $visualTools) {
+            $zipPath = Join-Path $toolRoot ($tool.Name + '.zip')
+            $extractPath = Join-Path $toolRoot ($tool.Name + '_UNZIP')
+            Invoke-WebRequest -Uri $tool.Url -OutFile $zipPath
+            Expand-Archive -LiteralPath $zipPath -DestinationPath $extractPath -Force
+
+            $installScript = Join-Path $extractPath 'install_script.bat'
+            $arguments = @('/c', "set ISINSTANCE=1 && call `"$installScript`"")
+            $process = Start-Process -FilePath 'cmd.exe' -ArgumentList $arguments `
+              -Wait -PassThru -NoNewWindow
+            if ($process.ExitCode -ne 0) {
+              throw "$($tool.Name) installation failed with exit code $($process.ExitCode)"
+            }
+          }
+
+          $msysBin = 'C:\msys64\usr\bin'
+          if (-not (Test-Path $msysBin)) {
+            throw "MSYS2 bin directory not found: $msysBin"
+          }
+          Add-Content -Path $env:GITHUB_PATH -Value $msysBin
+
+          $yasmPath = Join-Path $toolRoot 'yasm.exe'
+          Invoke-WebRequest `
+            -Uri 'https://www.tortall.net/projects/yasm/releases/yasm-1.3.0-win64.exe' `
+            -OutFile $yasmPath
+          Move-Item -Path $yasmPath -Destination (Join-Path $msysBin 'yasm.exe') -Force
+
+          $gasPreprocessorPath = Join-Path $toolRoot 'gas-preprocessor.pl'
+          Invoke-WebRequest `
+            -Uri 'https://raw.githubusercontent.com/FFmpeg/gas-preprocessor/master/gas-preprocessor.pl' `
+            -OutFile $gasPreprocessorPath
+          Move-Item -Path $gasPreprocessorPath `
+            -Destination (Join-Path $msysBin 'gas-preprocessor.pl') -Force
 
       - name: Install pywinmake
         id: pywinmake
