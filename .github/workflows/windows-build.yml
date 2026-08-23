@@ -64,10 +64,22 @@ jobs:
             }
           }
 
-          $msysBin = 'C:\msys64\usr\bin'
+          $msysRoot = if (Test-Path 'C:\msys64') {
+            'C:\msys64'
+          } elseif (Test-Path 'C:\tools\msys64') {
+            'C:\tools\msys64'
+          } else {
+            throw 'MSYS2 installation not found'
+          }
+          $msysBin = Join-Path $msysRoot 'usr\bin'
+          $msysBash = Join-Path $msysBin 'bash.exe'
           if (-not (Test-Path $msysBin)) {
             throw "MSYS2 bin directory not found: $msysBin"
           }
+
+          # build_ffmpeg.bat starts a login shell, so make the tool path
+          # available both to this step and to subsequent workflow steps.
+          $env:Path = "$msysBin;$env:Path"
           Add-Content -Path $env:GITHUB_PATH -Value $msysBin
 
           $yasmPath = Join-Path $toolRoot 'yasm.exe'
@@ -75,6 +87,36 @@ jobs:
             -Uri 'https://www.tortall.net/projects/yasm/releases/yasm-1.3.0-win64.exe' `
             -OutFile $yasmPath
           Move-Item -Path $yasmPath -Destination (Join-Path $msysBin 'yasm.exe') -Force
+
+          & (Join-Path $msysBin 'yasm.exe') --version
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Yasm executable verification failed'
+          }
+
+          $nasmArchive = Join-Path $toolRoot 'nasm.zip'
+          $nasmExtractPath = Join-Path $toolRoot 'NASM_UNZIP'
+          Invoke-WebRequest `
+            -Uri 'https://www.nasm.us/pub/nasm/releasebuilds/2.16.03/win64/nasm-2.16.03-win64.zip' `
+            -OutFile $nasmArchive
+          Expand-Archive -LiteralPath $nasmArchive -DestinationPath $nasmExtractPath -Force
+          $nasmSource = Get-ChildItem -LiteralPath $nasmExtractPath -Filter 'nasm.exe' -File -Recurse |
+            Select-Object -First 1
+          if (-not $nasmSource) {
+            throw 'NASM executable not found in downloaded archive'
+          }
+          Copy-Item -Path $nasmSource.FullName `
+            -Destination (Join-Path $msysBin 'nasm.exe') -Force
+
+          & (Join-Path $msysBin 'nasm.exe') -v
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Nasm executable verification failed'
+          }
+
+          $env:MSYS2_PATH_TYPE = 'inherit'
+          & $msysBash --login -lc 'command -v nasm && nasm -v && command -v yasm && yasm --version'
+          if ($LASTEXITCODE -ne 0) {
+            throw 'MSYS2 login shell cannot find nasm/yasm'
+          }
 
           $gasPreprocessorPath = Join-Path $toolRoot 'gas-preprocessor.pl'
           Invoke-WebRequest `
