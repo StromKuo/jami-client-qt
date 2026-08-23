@@ -1,7 +1,9 @@
 name: Windows build (fork CI)
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - ci/windows-build
 
 permissions:
   contents: read
