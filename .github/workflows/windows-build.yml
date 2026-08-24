@@ -24,6 +24,14 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Apply CI-only FFmpeg source-root workaround
+        shell: pwsh
+        run: |
+          git -C daemon apply --ignore-whitespace (Join-Path $env:GITHUB_WORKSPACE '.github\ci\ffmpeg-source-root.patch')
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Failed to apply the CI-only FFmpeg source-root workaround'
+          }
+
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
         with:
