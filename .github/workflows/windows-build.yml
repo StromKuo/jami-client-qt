@@ -132,7 +132,24 @@ jobs:
           $pywinmakeDir = Join-Path $env:RUNNER_TEMP 'pywinmake'
           git clone --depth 1 https://review.jami.net/pywinmake $pywinmakeDir
           git -C $pywinmakeDir apply (Join-Path $env:GITHUB_WORKSPACE '.github\ci\pywinmake-fetcher-rootdir.patch')
-          python -m pip install $pywinmakeDir
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Failed to apply the pywinmake archive-root patch'
+          }
+          python -m pip install --force-reinstall --no-deps --no-cache-dir $pywinmakeDir
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Failed to install the patched pywinmake package'
+          }
+
+          $fetcherPath = python -c "import pywinmake.package.fetcher as f; print(f.__file__)"
+          if ($LASTEXITCODE -ne 0 -or -not $fetcherPath) {
+            throw 'Could not locate the imported pywinmake fetcher'
+          }
+          Write-Host "Using pywinmake fetcher: $fetcherPath"
+          $fetcherSource = Get-Content -LiteralPath $fetcherPath -Raw
+          if ($fetcherSource -notmatch 'os\.path\.abspath\(self\.buildsrc_dir\)' -or
+              $fetcherSource -notmatch 'dst_dir\.mkdir\(parents=True, exist_ok=True\)') {
+            throw "The imported pywinmake fetcher is not patched: $fetcherPath"
+          }
 
           $commit = git -C $pywinmakeDir rev-parse HEAD
           "commit=$commit" >> $env:GITHUB_OUTPUT
