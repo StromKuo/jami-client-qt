@@ -1,7 +1,7 @@
 diff --git a/contrib/src/ffmpeg/windows-configure-make.sh b/contrib/src/ffmpeg/windows-configure-make.sh
 --- a/contrib/src/ffmpeg/windows-configure-make.sh
 +++ b/contrib/src/ffmpeg/windows-configure-make.sh
-@@ -4,5 +4,20 @@
+@@ -4,5 +4,33 @@
  DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
  cd $DIR/../../build/ffmpeg
 +# The Windows archive extractor can leave the FFmpeg source below a single
@@ -18,6 +18,19 @@ diff --git a/contrib/src/ffmpeg/windows-configure-make.sh b/contrib/src/ffmpeg/w
 +if [ ! -f Makefile ]; then
 +    echo "FFmpeg source Makefile missing under $(pwd)" >&2
 +    exit 1
++fi
++if [ ! -f tools/Makefile ]; then
++    echo "FFmpeg tools Makefile missing; restoring tools from the source archive"
++    archive=$(find "$DIR/../../tarballs" -maxdepth 1 -type f -name 'ffmpeg_*.tar.xz' -print -quit)
++    if [ -z "$archive" ]; then
++        echo "FFmpeg source archive not found under $DIR/../../tarballs" >&2
++        exit 1
++    fi
++    tar -xJf "$archive" --strip-components=1 -C . "ffmpeg-6.0.1/tools"
++    if [ ! -f tools/Makefile ]; then
++        echo "FFmpeg tools Makefile is unavailable after archive restore" >&2
++        exit 1
++    fi
 +fi
  FFMPEGCONF='
              --toolchain=msvc
