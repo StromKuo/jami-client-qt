@@ -82,11 +82,11 @@ jobs:
           $env:Path = "$msysBin;$env:Path"
           Add-Content -Path $env:GITHUB_PATH -Value $msysBin
 
-          $yasmPath = Join-Path $toolRoot 'yasm.exe'
-          Invoke-WebRequest `
-            -Uri 'https://www.tortall.net/projects/yasm/releases/yasm-1.3.0-win64.exe' `
-            -OutFile $yasmPath
-          Move-Item -Path $yasmPath -Destination (Join-Path $msysBin 'yasm.exe') -Force
+          $yasmSource = Join-Path $toolRoot 'VSYASM_UNZIP\yasm\yasm-64.exe'
+          if (-not (Test-Path $yasmSource)) {
+            throw "Yasm executable not found in VSYASM archive: $yasmSource"
+          }
+          Copy-Item -Path $yasmSource -Destination (Join-Path $msysBin 'yasm.exe') -Force
 
           & (Join-Path $msysBin 'yasm.exe') --version
           if ($LASTEXITCODE -ne 0) {
