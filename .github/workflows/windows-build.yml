@@ -135,7 +135,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) {
             throw 'Failed to apply the pywinmake archive-root patch'
           }
-          python -m pip install --force-reinstall --no-deps --no-cache-dir $pywinmakeDir
+          python -m pip install --force-reinstall --no-deps $pywinmakeDir
           if ($LASTEXITCODE -ne 0) {
             throw 'Failed to install the patched pywinmake package'
           }
