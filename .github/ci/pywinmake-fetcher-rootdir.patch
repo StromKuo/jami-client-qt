@@ -18,7 +18,8 @@ diff --git a/pywinmake/package/fetcher.py b/pywinmake/package/fetcher.py
 +                    src_dir = Path(self.buildsrc_dir) / cmn_prefix.rstrip("/\\")
 +                    dst_dir = Path(pkg.buildsrc_dir)
 +                    if os.path.normcase(os.path.abspath(src_dir.parent)) == \
-+                            os.path.normcase(os.path.abspath(dst_dir)):
++                            os.path.normcase(os.path.abspath(self.buildsrc_dir)):
++                        dst_dir.mkdir(parents=True, exist_ok=True)
 +                        for child in src_dir.iterdir():
 +                            shutil.move(str(child), str(dst_dir / child.name))
 +                        src_dir.rmdir()
