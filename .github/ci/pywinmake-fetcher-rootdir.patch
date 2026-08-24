@@ -1,7 +1,7 @@
 diff --git a/pywinmake/package/fetcher.py b/pywinmake/package/fetcher.py
 --- a/pywinmake/package/fetcher.py
 +++ b/pywinmake/package/fetcher.py
-@@ -133,9 +133,20 @@ class Fetcher:
+@@ -133,9 +133,21 @@ class Fetcher:
                  # If the archive is not flat, move the files to the build directory.
                  if not flat_archive:
                      log.info(
