@@ -161,14 +161,26 @@ jobs:
           key: windows-2022-x64-daemon-tarballs-${{ hashFiles('daemon/contrib/src/**', 'daemon/contrib/*.mak') }}
 
       - name: Cache daemon compiled dependencies
-        uses: actions/cache@v4
+        id: daemon-build-cache
+        uses: actions/cache/restore@v4
         with:
           path: daemon/contrib/build
-          key: windows-2022-x64-daemon-build-v2-${{ steps.pywinmake.outputs.commit }}-${{ hashFiles('daemon/contrib/src/**', 'daemon/contrib/*.mak', 'daemon/extras/scripts/winmake.py', '.github/ci/**') }}
+          key: windows-2022-x64-daemon-build-v3-${{ steps.pywinmake.outputs.commit }}-${{ hashFiles('daemon/contrib/src/**', 'daemon/contrib/*.mak', 'daemon/extras/scripts/winmake.py', '.github/ci/**') }}
 
       - name: Initialize and build Jami
         shell: pwsh
         run: |
+          $ffmpegBuildDir = Join-Path $env:GITHUB_WORKSPACE 'daemon\contrib\build\ffmpeg'
+          if (Test-Path $ffmpegBuildDir) {
+            Write-Host "Removing cached FFmpeg build directory: $ffmpegBuildDir"
+            Remove-Item -LiteralPath $ffmpegBuildDir -Recurse -Force
+          }
+          $ffmpegStateFile = Join-Path $env:GITHUB_WORKSPACE 'daemon\contrib\build\state\ffmpeg.json'
+          if (Test-Path $ffmpegStateFile) {
+            Write-Host "Removing cached FFmpeg state file: $ffmpegStateFile"
+            Remove-Item -LiteralPath $ffmpegStateFile -Force
+          }
+
           python extras/scripts/build-windows.py --init --qt "$env:QT_ROOT_DIR"
 
           $sdkRoot = Join-Path ${env:ProgramFiles(x86)} 'Windows Kits\10\Lib'
@@ -204,3 +216,10 @@ jobs:
           name: jami-windows-x64
           path: ${{ runner.temp }}/jami-windows-x64.zip
           if-no-files-found: error
+
+      - name: Save daemon compiled dependencies
+        if: success()
+        uses: actions/cache/save@v4
+        with:
+          path: daemon/contrib/build
+          key: windows-2022-x64-daemon-build-v3-${{ steps.pywinmake.outputs.commit }}-${{ hashFiles('daemon/contrib/src/**', 'daemon/contrib/*.mak', 'daemon/extras/scripts/winmake.py', '.github/ci/**') }}
