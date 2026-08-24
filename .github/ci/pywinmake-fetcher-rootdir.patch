@@ -1,0 +1,27 @@
+diff --git a/pywinmake/package/fetcher.py b/pywinmake/package/fetcher.py
+--- a/pywinmake/package/fetcher.py
++++ b/pywinmake/package/fetcher.py
+@@ -133,9 +133,20 @@ class Fetcher:
+                 # If the archive is not flat, move the files to the build directory.
+                 if not flat_archive:
+                     log.info(
+                         f"[pkg={pkg.name}] Moving {cmn_prefix} to {pkg.buildsrc_dir}"
+                     )
+-                    src_dir = str(self.buildsrc_dir / cmn_prefix)
+-                    dst_dir = long_path_prefix + os.path.abspath(pkg.buildsrc_dir)
+-                    shutil.move(src_dir, dst_dir)
++                    # Some tar archives include an explicit top-level directory
++                    # entry (for example, ffmpeg-6.0.1). In that case extraction
++                    # creates that directory inside buildsrc_dir, so moving it to
++                    # buildsrc_dir would target its own parent. Move its contents
++                    # out instead; this also preserves the source-root Makefile.
++                    src_dir = Path(self.buildsrc_dir) / cmn_prefix.rstrip("/\\")
++                    dst_dir = Path(pkg.buildsrc_dir)
++                    if os.path.normcase(os.path.abspath(src_dir.parent)) == \
++                            os.path.normcase(os.path.abspath(dst_dir)):
++                        for child in src_dir.iterdir():
++                            shutil.move(str(child), str(dst_dir / child.name))
++                        src_dir.rmdir()
++                    else:
++                        shutil.move(str(src_dir), str(dst_dir))
+             return True

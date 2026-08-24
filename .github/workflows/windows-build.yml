@@ -131,6 +131,7 @@ jobs:
         run: |
           $pywinmakeDir = Join-Path $env:RUNNER_TEMP 'pywinmake'
           git clone --depth 1 https://review.jami.net/pywinmake $pywinmakeDir
+          git -C $pywinmakeDir apply (Join-Path $env:GITHUB_WORKSPACE '.github\ci\pywinmake-fetcher-rootdir.patch')
           python -m pip install $pywinmakeDir
 
           $commit = git -C $pywinmakeDir rev-parse HEAD
@@ -146,7 +147,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: daemon/contrib/build
-          key: windows-2022-x64-daemon-build-${{ steps.pywinmake.outputs.commit }}-${{ hashFiles('daemon/contrib/src/**', 'daemon/contrib/*.mak', 'daemon/extras/scripts/winmake.py') }}
+          key: windows-2022-x64-daemon-build-v2-${{ steps.pywinmake.outputs.commit }}-${{ hashFiles('daemon/contrib/src/**', 'daemon/contrib/*.mak', 'daemon/extras/scripts/winmake.py', '.github/ci/**') }}
 
       - name: Initialize and build Jami
         shell: pwsh
