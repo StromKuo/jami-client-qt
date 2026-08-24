@@ -47,20 +47,14 @@ diff --git a/contrib/src/ffmpeg/build_ffmpeg.bat b/contrib/src/ffmpeg/build_ffmp
 diff --git a/contrib/src/ffmpeg/windows-configure-make.sh b/contrib/src/ffmpeg/windows-configure-make.sh
 --- a/contrib/src/ffmpeg/windows-configure-make.sh
 +++ b/contrib/src/ffmpeg/windows-configure-make.sh
-@@ -213,5 +213,16 @@
+@@ -213,5 +213,10 @@
  set -x
  set -e
++# Keep the main FFmpeg Makefile beside the generated build Makefile. The
++# generated include otherwise points at the source tree with an absolute
++# MSYS path, which can become invalid after extraction/patching on Windows.
++cp -f ../../../Makefile ffmpeg-main-makefile
  ../../../configure $FFMPEGCONF --extra-cflags="${EXTRACFLAGS}" --extra-ldflags="${EXTRALDFLAGS}" --prefix="${PREFIX}" --extra-cxxflags="-std:c++20 /Zc:__cplusplus"
-+if [ ! -f ../../../Makefile ]; then
-+    echo "FFmpeg source Makefile disappeared before make; restoring it from the cached archive"
-+    archive=$(find "$DIR/../../tarballs" -maxdepth 1 -type f -name 'ffmpeg_*.tar.xz' -print -quit)
-+    if [ -n "$archive" ]; then
-+        tar -xJf "$archive" --strip-components=1 -C ../../../ "ffmpeg-6.0.1/Makefile"
-+    fi
-+fi
-+if [ ! -f ../../../Makefile ]; then
-+    echo "FFmpeg source Makefile is unavailable after configure" >&2
-+    exit 1
-+fi
++printf 'include ffmpeg-main-makefile\n' > Makefile
  make -j8 install
  cd ../../..
