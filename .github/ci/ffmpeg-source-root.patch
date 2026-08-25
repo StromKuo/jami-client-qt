@@ -47,7 +47,7 @@ diff --git a/contrib/src/ffmpeg/build_ffmpeg.bat b/contrib/src/ffmpeg/build_ffmp
 diff --git a/contrib/src/ffmpeg/windows-configure-make.sh b/contrib/src/ffmpeg/windows-configure-make.sh
 --- a/contrib/src/ffmpeg/windows-configure-make.sh
 +++ b/contrib/src/ffmpeg/windows-configure-make.sh
-@@ -213,5 +213,46 @@
+@@ -213,5 +213,54 @@
  set -x
  set -e
 +# Keep the main FFmpeg Makefile beside the generated build Makefile. The
@@ -58,6 +58,14 @@ diff --git a/contrib/src/ffmpeg/windows-configure-make.sh b/contrib/src/ffmpeg/w
 +if [ ! -f ../../../ar-lib ]; then
 +    wget -q -O ../../../ar-lib https://raw.githubusercontent.com/autotools-mirror/automake/v1.16.5/lib/ar-lib
 +    chmod +x ../../../ar-lib
++fi
++if ! grep -q 'JAMI_CI_ABSOLUTE_MEMBER_PATHS' ../../../ar-lib; then
++    sed -i '/^  file=$1$/a\
++  # JAMI_CI_ABSOLUTE_MEMBER_PATHS\
++  case $file in\
++    /*) ;;\
++    *) file="$PWD/$file" ;;\
++  esac' ../../../ar-lib
 +fi
 +if ! sed -i 's/^LIBSUF=.a$/LIBSUF=.lib/' ffbuild/config.mak || ! grep -q '^LIBSUF=.lib$' ffbuild/config.mak; then
 +    echo "Unable to normalize FFmpeg static library suffix" >&2
