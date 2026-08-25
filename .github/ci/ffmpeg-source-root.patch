@@ -47,7 +47,7 @@ diff --git a/contrib/src/ffmpeg/build_ffmpeg.bat b/contrib/src/ffmpeg/build_ffmp
 diff --git a/contrib/src/ffmpeg/windows-configure-make.sh b/contrib/src/ffmpeg/windows-configure-make.sh
 --- a/contrib/src/ffmpeg/windows-configure-make.sh
 +++ b/contrib/src/ffmpeg/windows-configure-make.sh
-@@ -213,5 +213,33 @@
+@@ -213,5 +213,46 @@
  set -x
  set -e
 +# Keep the main FFmpeg Makefile beside the generated build Makefile. The
@@ -55,9 +55,22 @@ diff --git a/contrib/src/ffmpeg/windows-configure-make.sh b/contrib/src/ffmpeg/w
 +# MSYS path, which can become invalid after extraction/patching on Windows.
 +cp -f ../../../Makefile ffmpeg-main-makefile
  ../../../configure $FFMPEGCONF --extra-cflags="${EXTRACFLAGS}" --extra-ldflags="${EXTRALDFLAGS}" --prefix="${PREFIX}" --extra-cxxflags="-std:c++20 /Zc:__cplusplus"
++if [ ! -f ../../../ar-lib ]; then
++    wget -q -O ../../../ar-lib https://raw.githubusercontent.com/autotools-mirror/automake/v1.16.5/lib/ar-lib
++    chmod +x ../../../ar-lib
++fi
++if ! sed -i 's/^LIBSUF=.a$/LIBSUF=.lib/' ffbuild/config.mak || ! grep -q '^LIBSUF=.lib$' ffbuild/config.mak; then
++    echo "Unable to normalize FFmpeg static library suffix" >&2
++    exit 1
++fi
 +{
 +    printf 'override SRC_PATH := ../../../\n'
 +    printf 'override SRC_LINK := ../../../\n'
++    # FFmpeg invokes lib.exe through the MSYS2 shell. Automake's ar-lib
++    # converts the GNU ar-style command into a native lib.exe invocation.
++    printf '%s\n' 'override AR := ../../../ar-lib lib.exe'
++    printf '%s\n' 'override ARFLAGS := rc'
++    printf '%s\n' 'override AR_O := $@'
 +    # The FFmpeg MSVC dependency scanner is only needed for incremental builds.
 +    # Its path conversion is broken in the MSYS2/PowerShell environment and can
 +    # corrupt later lib.exe invocations, so omit dependency sidecar generation
