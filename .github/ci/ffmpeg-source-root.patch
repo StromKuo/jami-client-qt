@@ -47,7 +47,7 @@ diff --git a/contrib/src/ffmpeg/build_ffmpeg.bat b/contrib/src/ffmpeg/build_ffmp
 diff --git a/contrib/src/ffmpeg/windows-configure-make.sh b/contrib/src/ffmpeg/windows-configure-make.sh
 --- a/contrib/src/ffmpeg/windows-configure-make.sh
 +++ b/contrib/src/ffmpeg/windows-configure-make.sh
-@@ -213,5 +213,27 @@
+@@ -213,5 +213,29 @@
  set -x
  set -e
 +# Keep the main FFmpeg Makefile beside the generated build Makefile. The
@@ -58,6 +58,8 @@ diff --git a/contrib/src/ffmpeg/windows-configure-make.sh b/contrib/src/ffmpeg/w
 +{
 +    printf 'override SRC_PATH := ../../../\n'
 +    printf 'override SRC_LINK := ../../../\n'
++    printf '%s\n' 'override CCDEP = $(DEP$(1)) $(DEP$(1)FLAGS) $($(1)DEP_FLAGS) $< 2>&1 | grep "^Note:.*file:" | sed -e "s^.*file: *^$@: ^" | tr \\\\ / > $(@:.o=.d)'
++    printf '%s\n' 'override CXXDEP = $(DEP$(1)) $(DEP$(1)FLAGS) $($(1)DEP_FLAGS) $< 2>&1 | grep "^Note:.*file:" | sed -e "s^.*file: *^$@: ^" | tr \\\\ / > $(@:.o=.d)'
 +    printf 'include ffmpeg-main-makefile\n'
 +} > Makefile
 +if [ ! -f ../../../tools/Makefile ]; then
