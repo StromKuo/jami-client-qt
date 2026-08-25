@@ -47,7 +47,7 @@ diff --git a/contrib/src/ffmpeg/build_ffmpeg.bat b/contrib/src/ffmpeg/build_ffmp
 diff --git a/contrib/src/ffmpeg/windows-configure-make.sh b/contrib/src/ffmpeg/windows-configure-make.sh
 --- a/contrib/src/ffmpeg/windows-configure-make.sh
 +++ b/contrib/src/ffmpeg/windows-configure-make.sh
-@@ -213,5 +213,62 @@
+@@ -213,5 +213,73 @@
  set -x
  set -e
 +# Keep the main FFmpeg Makefile beside the generated build Makefile. The
@@ -107,6 +107,17 @@ diff --git a/contrib/src/ffmpeg/windows-configure-make.sh b/contrib/src/ffmpeg/w
 +if [ ! -f ../../../tools/Makefile ]; then
 +    echo "FFmpeg tools Makefile is unavailable after configure" >&2
 +    exit 1
++fi
++make V=1 -j8 libavdevice/alldevices.o
++if [ ! -f libavdevice/alldevices.o ]; then
++    if [ -f libavdevice/alldevices.obj ]; then
++        echo "Renaming MSVC object libavdevice/alldevices.obj to .o"
++        mv -f libavdevice/alldevices.obj libavdevice/alldevices.o
++    else
++        echo "FFmpeg did not produce libavdevice/alldevices.o or .obj" >&2
++        find . -type f -iname 'alldevices.*' -print >&2
++        exit 1
++    fi
 +fi
  make -j8 install
  cd ../../..
