@@ -47,7 +47,7 @@ diff --git a/contrib/src/ffmpeg/build_ffmpeg.bat b/contrib/src/ffmpeg/build_ffmp
 diff --git a/contrib/src/ffmpeg/windows-configure-make.sh b/contrib/src/ffmpeg/windows-configure-make.sh
 --- a/contrib/src/ffmpeg/windows-configure-make.sh
 +++ b/contrib/src/ffmpeg/windows-configure-make.sh
-@@ -213,5 +213,23 @@
+@@ -213,5 +213,27 @@
  set -x
  set -e
 +# Keep the main FFmpeg Makefile beside the generated build Makefile. The
@@ -55,7 +55,11 @@ diff --git a/contrib/src/ffmpeg/windows-configure-make.sh b/contrib/src/ffmpeg/w
 +# MSYS path, which can become invalid after extraction/patching on Windows.
 +cp -f ../../../Makefile ffmpeg-main-makefile
  ../../../configure $FFMPEGCONF --extra-cflags="${EXTRACFLAGS}" --extra-ldflags="${EXTRALDFLAGS}" --prefix="${PREFIX}" --extra-cxxflags="-std:c++20 /Zc:__cplusplus"
-+printf 'include ffmpeg-main-makefile\n' > Makefile
++{
++    printf 'override SRC_PATH := ../../../\n'
++    printf 'override SRC_LINK := ../../../\n'
++    printf 'include ffmpeg-main-makefile\n'
++} > Makefile
 +if [ ! -f ../../../tools/Makefile ]; then
 +    echo "FFmpeg tools Makefile disappeared during configure; restoring tools from the source archive"
 +    archive=$(find "$DIR/../../tarballs" -maxdepth 1 -type f -name 'ffmpeg_*.tar.xz' -print -quit)
