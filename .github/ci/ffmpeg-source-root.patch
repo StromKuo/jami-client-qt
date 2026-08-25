@@ -47,7 +47,7 @@ diff --git a/contrib/src/ffmpeg/build_ffmpeg.bat b/contrib/src/ffmpeg/build_ffmp
 diff --git a/contrib/src/ffmpeg/windows-configure-make.sh b/contrib/src/ffmpeg/windows-configure-make.sh
 --- a/contrib/src/ffmpeg/windows-configure-make.sh
 +++ b/contrib/src/ffmpeg/windows-configure-make.sh
-@@ -213,5 +213,54 @@
+@@ -213,5 +213,62 @@
  set -x
  set -e
 +# Keep the main FFmpeg Makefile beside the generated build Makefile. The
@@ -65,6 +65,14 @@ diff --git a/contrib/src/ffmpeg/windows-configure-make.sh b/contrib/src/ffmpeg/w
 +  case $file in\
 +    /*) ;;\
 +    *) file="$PWD/$file" ;;\
++  esac\
++  case $file in\
++    *.o)\
++      if test ! -f "$file" && test -f "${file%.o}.obj"; then\
++        echo "Using MSVC object fallback: $file -> ${file%.o}.obj" >&2\
++        file="${file%.o}.obj"\
++      fi\
++      ;;\
 +  esac' ../../../ar-lib
 +fi
 +if ! sed -i 's/^LIBSUF=.a$/LIBSUF=.lib/' ffbuild/config.mak || ! grep -q '^LIBSUF=.lib$' ffbuild/config.mak; then
