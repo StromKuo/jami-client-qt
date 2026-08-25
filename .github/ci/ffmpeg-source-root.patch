@@ -82,14 +82,14 @@ diff --git a/contrib/src/ffmpeg/windows-configure-make.sh b/contrib/src/ffmpeg/w
 +{
 +    printf 'override SRC_PATH := ../../../\n'
 +    printf 'override SRC_LINK := ../../../\n'
-+    printf '%s\n' 'override CC_O := -Fo$@'
-+    printf '%s\n' 'override CXX_O := -Fo$@'
-+    printf '%s\n' 'override OBJCC_O := -Fo$@'
++    printf '%s\n' 'override CC_O = -Fo$@'
++    printf '%s\n' 'override CXX_O = -Fo$@'
++    printf '%s\n' 'override OBJCC_O = -Fo$@'
 +    # FFmpeg invokes lib.exe through the MSYS2 shell. Automake's ar-lib
 +    # converts the GNU ar-style command into a native lib.exe invocation.
 +    printf '%s\n' 'override AR := ../../../ar-lib lib.exe'
 +    printf '%s\n' 'override ARFLAGS := rc'
-+    printf '%s\n' 'override AR_O := $@'
++    printf '%s\n' 'override AR_O = $@'
 +    # The FFmpeg MSVC dependency scanner is only needed for incremental builds.
 +    # Its path conversion is broken in the MSYS2/PowerShell environment and can
 +    # corrupt later lib.exe invocations, so omit dependency sidecar generation
