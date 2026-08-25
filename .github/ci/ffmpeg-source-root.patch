@@ -47,7 +47,7 @@ diff --git a/contrib/src/ffmpeg/build_ffmpeg.bat b/contrib/src/ffmpeg/build_ffmp
 diff --git a/contrib/src/ffmpeg/windows-configure-make.sh b/contrib/src/ffmpeg/windows-configure-make.sh
 --- a/contrib/src/ffmpeg/windows-configure-make.sh
 +++ b/contrib/src/ffmpeg/windows-configure-make.sh
-@@ -213,5 +213,73 @@
+@@ -213,5 +213,76 @@
  set -x
  set -e
 +# Keep the main FFmpeg Makefile beside the generated build Makefile. The
@@ -82,6 +82,9 @@ diff --git a/contrib/src/ffmpeg/windows-configure-make.sh b/contrib/src/ffmpeg/w
 +{
 +    printf 'override SRC_PATH := ../../../\n'
 +    printf 'override SRC_LINK := ../../../\n'
++    printf '%s\n' 'override CC_O := -Fo$@'
++    printf '%s\n' 'override CXX_O := -Fo$@'
++    printf '%s\n' 'override OBJCC_O := -Fo$@'
 +    # FFmpeg invokes lib.exe through the MSYS2 shell. Automake's ar-lib
 +    # converts the GNU ar-style command into a native lib.exe invocation.
 +    printf '%s\n' 'override AR := ../../../ar-lib lib.exe'
