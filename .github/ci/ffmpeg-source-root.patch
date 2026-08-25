@@ -47,7 +47,7 @@ diff --git a/contrib/src/ffmpeg/build_ffmpeg.bat b/contrib/src/ffmpeg/build_ffmp
 diff --git a/contrib/src/ffmpeg/windows-configure-make.sh b/contrib/src/ffmpeg/windows-configure-make.sh
 --- a/contrib/src/ffmpeg/windows-configure-make.sh
 +++ b/contrib/src/ffmpeg/windows-configure-make.sh
-@@ -213,5 +213,76 @@
+@@ -213,5 +213,96 @@
  set -x
  set -e
 +# Keep the main FFmpeg Makefile beside the generated build Makefile. The
@@ -79,15 +79,35 @@ diff --git a/contrib/src/ffmpeg/windows-configure-make.sh b/contrib/src/ffmpeg/w
 +    echo "Unable to normalize FFmpeg static library suffix" >&2
 +    exit 1
 +fi
++if [ ! -x ../../../jami-lib-wrapper.sh ]; then
++    {
++        printf '%s\n' '#!/usr/bin/env bash'
++        printf '%s\n' 'set -e'
++        printf '%s\n' 'lib_exe=$(command -v lib.exe || true)'
++        printf '%s\n' 'if [ -z "$lib_exe" ]; then'
++        printf '%s\n' '    echo "MSVC lib.exe is not on PATH" >&2'
++        printf '%s\n' '    exit 1'
++        printf '%s\n' 'fi'
++        printf '%s\n' 'response_file=$(mktemp "${TMPDIR:-/tmp}/jami-lib.XXXXXX")'
++        printf '%s\n' 'cleanup() { rm -f "$response_file"; }'
++        printf '%s\n' 'trap cleanup EXIT'
++        printf '%s\n' 'for argument in "$@"; do'
++        printf '%s\n' '    printf "\042%s\042\n" "$argument" >> "$response_file"'
++        printf '%s\n' 'done'
++        printf '%s\n' 'response_file_win=$(cygpath -w "$response_file")'
++        printf '%s\n' '"$lib_exe" "@$response_file_win"'
++    } > ../../../jami-lib-wrapper.sh
++    chmod +x ../../../jami-lib-wrapper.sh
++fi
 +{
 +    printf 'override SRC_PATH := ../../../\n'
 +    printf 'override SRC_LINK := ../../../\n'
 +    printf '%s\n' 'override CC_O = -Fo$@'
 +    printf '%s\n' 'override CXX_O = -Fo$@'
 +    printf '%s\n' 'override OBJCC_O = -Fo$@'
-+    # FFmpeg invokes lib.exe through the MSYS2 shell. Automake's ar-lib
-+    # converts the GNU ar-style command into a native lib.exe invocation.
-+    printf '%s\n' 'override AR := ../../../ar-lib lib.exe'
++    # FFmpeg invokes lib.exe through the MSYS2 shell. The wrapper moves the
++    # long member list into a LIB response file before invoking lib.exe.
++    printf '%s\n' 'override AR := ../../../ar-lib ../../../jami-lib-wrapper.sh'
 +    printf '%s\n' 'override ARFLAGS := rc'
 +    printf '%s\n' 'override AR_O = $@'
 +    # The FFmpeg MSVC dependency scanner is only needed for incremental builds.
