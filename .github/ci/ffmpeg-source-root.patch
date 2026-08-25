@@ -47,7 +47,7 @@ diff --git a/contrib/src/ffmpeg/build_ffmpeg.bat b/contrib/src/ffmpeg/build_ffmp
 diff --git a/contrib/src/ffmpeg/windows-configure-make.sh b/contrib/src/ffmpeg/windows-configure-make.sh
 --- a/contrib/src/ffmpeg/windows-configure-make.sh
 +++ b/contrib/src/ffmpeg/windows-configure-make.sh
-@@ -213,5 +213,96 @@
+@@ -213,5 +213,104 @@
  set -x
  set -e
 +# Keep the main FFmpeg Makefile beside the generated build Makefile. The
@@ -91,11 +91,19 @@ diff --git a/contrib/src/ffmpeg/windows-configure-make.sh b/contrib/src/ffmpeg/w
 +        printf '%s\n' 'response_file=$(mktemp "${TMPDIR:-/tmp}/jami-lib.XXXXXX")'
 +        printf '%s\n' 'cleanup() { rm -f "$response_file"; }'
 +        printf '%s\n' 'trap cleanup EXIT'
++        printf '%s\n' 'command_args=()'
++        printf '%s\n' 'member_args=()'
 +        printf '%s\n' 'for argument in "$@"; do'
-+        printf '%s\n' '    printf "\042%s\042\n" "$argument" >> "$response_file"'
++        printf '%s\n' '    case "$argument" in'
++        printf '%s\n' '        -*|/*) command_args+=("$argument") ;;'
++        printf '%s\n' '        *) member_args+=("$argument") ;;'
++        printf '%s\n' '    esac'
++        printf '%s\n' 'done'
++        printf '%s\n' 'for argument in "${member_args[@]}"; do'
++        printf '%s\n' '    printf "%s\\n" "$argument" >> "$response_file"'
 +        printf '%s\n' 'done'
 +        printf '%s\n' 'response_file_win=$(cygpath -w "$response_file")'
-+        printf '%s\n' '"$lib_exe" "@$response_file_win"'
++        printf '%s\n' '"$lib_exe" "${command_args[@]}" "@$response_file_win"'
 +    } > ../../../jami-lib-wrapper.sh
 +    chmod +x ../../../jami-lib-wrapper.sh
 +fi
