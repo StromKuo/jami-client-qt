@@ -239,8 +239,18 @@ jobs:
             throw 'Windows SDK version was not exported by the preparation step'
           }
 
+          $cargoBin = Join-Path $env:USERPROFILE '.cargo\bin'
+          if (Test-Path (Join-Path $cargoBin 'cargo.exe')) {
+            $env:Path = "$cargoBin;$env:Path"
+            Add-Content -Path $env:GITHUB_PATH -Value $cargoBin
+          }
+          $cargoCommand = Get-Command cargo -ErrorAction SilentlyContinue
+          if (-not $cargoCommand) {
+            throw "cargo.exe was not found; checked PATH and $cargoBin"
+          }
+
           Push-Location (Join-Path $env:GITHUB_WORKSPACE 'daemon\compat\msvc')
-          Write-Host "cargo: $((Get-Command cargo -ErrorAction Stop).Source)"
+          Write-Host "cargo: $($cargoCommand.Source)"
           cargo --version
           python --version
           python winmake.py -iv -v -s $env:JAMI_WINDOWS_SDK -b yffi
