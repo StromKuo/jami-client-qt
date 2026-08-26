@@ -1,0 +1,12 @@
+diff --git a/contrib/src/yffi/package.json b/contrib/src/yffi/package.json
+--- a/contrib/src/yffi/package.json
++++ b/contrib/src/yffi/package.json
+@@ -6,7 +6,7 @@
+     "deps": [],
+     "custom_scripts": {
+         "build": [
+-            "cargo build --release --locked --manifest-path yffi\\Cargo.toml --target-dir target"
++            "cargo build --release --locked --manifest-path yffi/Cargo.toml --target-dir target"
+         ]
+     }
+ }

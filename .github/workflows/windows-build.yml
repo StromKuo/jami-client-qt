@@ -233,6 +233,13 @@ jobs:
             throw 'Failed to apply the daemon Visual Studio environment parser patch'
           }
 
+          $yffiPathPatch = Join-Path $env:GITHUB_WORKSPACE '.github\ci\yffi-windows-path.patch'
+          git -C (Join-Path $env:GITHUB_WORKSPACE 'daemon') apply --check $yffiPathPatch
+          git -C (Join-Path $env:GITHUB_WORKSPACE 'daemon') apply $yffiPathPatch
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Failed to apply the yffi Windows manifest path patch'
+          }
+
       - name: Build Y-CRDT FFI dependency
         shell: pwsh
         run: |
