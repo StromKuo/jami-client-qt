@@ -40,6 +40,30 @@ jobs:
           modules: 'qtwebengine qtmultimedia qtnetworkauth qtwebchannel qtwebsockets qtwebview qt5compat qtpositioning'
           cache: true
 
+      - name: Install AMD AMF headers
+        shell: pwsh
+        run: |
+          $amfRoot = Join-Path $env:RUNNER_TEMP 'amf-headers'
+          git clone --depth 1 --filter=blob:none --sparse `
+            https://github.com/GPUOpen-LibrariesAndSDKs/AMF.git $amfRoot
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Failed to clone the AMD AMF headers repository'
+          }
+          git -C $amfRoot sparse-checkout set amf/public/include
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Failed to select the AMD AMF public headers'
+          }
+
+          $amfInclude = Join-Path $amfRoot 'amf\public\include'
+          $amfDestination = Join-Path $env:GITHUB_WORKSPACE 'daemon\compat\msvc\include\AMF'
+          if (-not (Test-Path (Join-Path $amfInclude 'core\Version.h'))) {
+            throw "AMD AMF headers not found under $amfInclude"
+          }
+          New-Item -ItemType Directory -Force -Path $amfDestination | Out-Null
+          Copy-Item -Path (Join-Path $amfInclude '*') `
+            -Destination $amfDestination -Recurse -Force
+          Write-Host "Installed AMD AMF headers into $amfDestination"
+
       - name: Install assembler tools
         shell: pwsh
         run: |
