@@ -47,7 +47,7 @@ diff --git a/contrib/src/ffmpeg/build_ffmpeg.bat b/contrib/src/ffmpeg/build_ffmp
 diff --git a/contrib/src/ffmpeg/windows-configure-make.sh b/contrib/src/ffmpeg/windows-configure-make.sh
 --- a/contrib/src/ffmpeg/windows-configure-make.sh
 +++ b/contrib/src/ffmpeg/windows-configure-make.sh
-@@ -213,5 +213,104 @@
+@@ -213,5 +213,132 @@
  set -x
  set -e
 +# Keep the main FFmpeg Makefile beside the generated build Makefile. The
@@ -55,26 +55,6 @@ diff --git a/contrib/src/ffmpeg/windows-configure-make.sh b/contrib/src/ffmpeg/w
 +# MSYS path, which can become invalid after extraction/patching on Windows.
 +cp -f ../../../Makefile ffmpeg-main-makefile
  ../../../configure $FFMPEGCONF --extra-cflags="${EXTRACFLAGS}" --extra-ldflags="${EXTRALDFLAGS}" --prefix="${PREFIX}" --extra-cxxflags="-std:c++20 /Zc:__cplusplus"
-+if [ ! -f ../../../ar-lib ]; then
-+    wget -q -O ../../../ar-lib https://raw.githubusercontent.com/autotools-mirror/automake/v1.16.5/lib/ar-lib
-+    chmod +x ../../../ar-lib
-+fi
-+if ! grep -q 'JAMI_CI_ABSOLUTE_MEMBER_PATHS' ../../../ar-lib; then
-+    sed -i '/^  file=$1$/a\
-+  # JAMI_CI_ABSOLUTE_MEMBER_PATHS\
-+  case $file in\
-+    /*) ;;\
-+    *) file="$PWD/$file" ;;\
-+  esac\
-+  case $file in\
-+    *.o)\
-+      if test ! -f "$file" && test -f "${file%.o}.obj"; then\
-+        echo "Using MSVC object fallback: $file -> ${file%.o}.obj" >&2\
-+        file="${file%.o}.obj"\
-+      fi\
-+      ;;\
-+  esac' ../../../ar-lib
-+fi
 +if ! sed -i 's/^LIBSUF=.a$/LIBSUF=.lib/' ffbuild/config.mak || ! grep -q '^LIBSUF=.lib$' ffbuild/config.mak; then
 +    echo "Unable to normalize FFmpeg static library suffix" >&2
 +    exit 1
@@ -88,22 +68,70 @@ diff --git a/contrib/src/ffmpeg/windows-configure-make.sh b/contrib/src/ffmpeg/w
 +        printf '%s\n' '    echo "MSVC lib.exe is not on PATH" >&2'
 +        printf '%s\n' '    exit 1'
 +        printf '%s\n' 'fi'
-+        printf '%s\n' 'response_file=$(mktemp "${TMPDIR:-/tmp}/jami-lib.XXXXXX")'
-+        printf '%s\n' 'cleanup() { rm -f "$response_file"; }'
++        printf '%s\n' 'if [ "$#" -lt 3 ]; then'
++        printf '%s\n' '    echo "Usage: jami-lib-wrapper.sh action archive member..." >&2'
++        printf '%s\n' '    exit 1'
++        printf '%s\n' 'fi'
++        printf '%s\n' 'action=$1'
++        printf '%s\n' 'archive=$2'
++        printf '%s\n' 'shift 2'
++        printf '%s\n' 'action=${action#-}'
++        printf '%s\n' 'case "$action" in'
++        printf '%s\n' '    *r*|*q*) ;;'
++        printf '%s\n' '    *) echo "Unsupported LIB action: $action" >&2; exit 1 ;;'
++        printf '%s\n' 'esac'
++        printf '%s\n' 'to_absolute_path() {'
++        printf '%s\n' '    case "$1" in'
++        printf '%s\n' '        /*|[A-Za-z]:/*|[A-Za-z]:\\*) printf "%s\n" "$1" ;;'
++        printf '%s\n' '        *) printf "%s\n" "$PWD/$1" ;;'
++        printf '%s\n' '    esac'
++        printf '%s\n' '}'
++        printf '%s\n' 'archive_path=$(to_absolute_path "$archive")'
++        printf '%s\n' 'archive_win=$(cygpath -m "$archive_path")'
++        printf '%s\n' 'chunk_dir=$(mktemp -d "${TMPDIR:-/tmp}/jami-lib.XXXXXX")'
++        printf '%s\n' 'cleanup() {'
++        printf '%s\n' '    find "$chunk_dir" -type f -delete 2>/dev/null || true'
++        printf '%s\n' '    rmdir "$chunk_dir" 2>/dev/null || true'
++        printf '%s\n' '}'
 +        printf '%s\n' 'trap cleanup EXIT'
-+        printf '%s\n' 'command_args=()'
-+        printf '%s\n' 'member_args=()'
++        printf '%s\n' 'members=()'
 +        printf '%s\n' 'for argument in "$@"; do'
 +        printf '%s\n' '    case "$argument" in'
-+        printf '%s\n' '        -*|/*) command_args+=("$argument") ;;'
-+        printf '%s\n' '        *) member_args+=("$argument") ;;'
++        printf '%s\n' '        @*) echo "LIB response members are not supported" >&2; exit 1 ;;'
 +        printf '%s\n' '    esac'
++        printf '%s\n' '    member_path=$(to_absolute_path "$argument")'
++        printf '%s\n' '    if [ ! -f "$member_path" ]; then'
++        printf '%s\n' '        case "$member_path" in'
++        printf '%s\n' '            *.o)'
++        printf '%s\n' '                fallback="${member_path%.o}.obj"'
++        printf '%s\n' '                if [ -f "$fallback" ]; then member_path=$fallback; fi'
++        printf '%s\n' '                ;;'
++        printf '%s\n' '        esac'
++        printf '%s\n' '    fi'
++        printf '%s\n' '    if [ ! -f "$member_path" ]; then'
++        printf '%s\n' '        echo "LIB member not found: $member_path" >&2'
++        printf '%s\n' '        exit 1'
++        printf '%s\n' '    fi'
++        printf '%s\n' '    members+=("$(cygpath -m "$member_path")")'
 +        printf '%s\n' 'done'
-+        printf '%s\n' 'for argument in "${member_args[@]}"; do'
-+        printf '%s\n' '    printf "%s\\n" "$argument" >> "$response_file"'
++        printf '%s\n' 'if [ "${#members[@]}" -eq 0 ]; then'
++        printf '%s\n' '    echo "LIB archive has no members: $archive" >&2'
++        printf '%s\n' '    exit 1'
++        printf '%s\n' 'fi'
++        printf '%s\n' 'chunk_size=32'
++        printf '%s\n' 'chunk_archives=()'
++        printf '%s\n' 'chunk_index=0'
++        printf '%s\n' 'for ((offset=0; offset<${#members[@]}; offset+=chunk_size)); do'
++        printf '%s\n' '    chunk_archive="$chunk_dir/chunk-$chunk_index.lib"'
++        printf '%s\n' '    chunk_archive_win=$(cygpath -m "$chunk_archive")'
++        printf '%s\n' '    chunk_members=("${members[@]:offset:chunk_size}")'
++        printf '%s\n' '    echo "JAMI LIB: building chunk $chunk_index with ${#chunk_members[@]} members" >&2'
++        printf '%s\n' '    "$lib_exe" -NOLOGO "-OUT:$chunk_archive_win" "${chunk_members[@]}"'
++        printf '%s\n' '    chunk_archives+=("$chunk_archive_win")'
++        printf '%s\n' '    chunk_index=$((chunk_index + 1))'
 +        printf '%s\n' 'done'
-+        printf '%s\n' 'response_file_win=$(cygpath -w "$response_file")'
-+        printf '%s\n' '"$lib_exe" "${command_args[@]}" "@$response_file_win"'
++        printf '%s\n' 'echo "JAMI LIB: creating $archive from $chunk_index chunks" >&2'
++        printf '%s\n' '"$lib_exe" -NOLOGO "-OUT:$archive_win" "${chunk_archives[@]}"'
 +    } > ../../../jami-lib-wrapper.sh
 +    chmod +x ../../../jami-lib-wrapper.sh
 +fi
@@ -113,9 +141,9 @@ diff --git a/contrib/src/ffmpeg/windows-configure-make.sh b/contrib/src/ffmpeg/w
 +    printf '%s\n' 'override CC_O = -Fo$@'
 +    printf '%s\n' 'override CXX_O = -Fo$@'
 +    printf '%s\n' 'override OBJCC_O = -Fo$@'
-+    # FFmpeg invokes lib.exe through the MSYS2 shell. The wrapper moves the
-+    # long member list into a LIB response file before invoking lib.exe.
-+    printf '%s\n' 'override AR := ../../../ar-lib ../../../jami-lib-wrapper.sh'
++    # FFmpeg passes a long object list to AR. The wrapper creates bounded
++    # intermediate libraries before merging them with MSVC lib.exe.
++    printf '%s\n' 'override AR := ../../../jami-lib-wrapper.sh'
 +    printf '%s\n' 'override ARFLAGS := rc'
 +    printf '%s\n' 'override AR_O = $@'
 +    # The FFmpeg MSVC dependency scanner is only needed for incremental builds.
