@@ -240,8 +240,10 @@ jobs:
           }
 
           Push-Location (Join-Path $env:GITHUB_WORKSPACE 'daemon\compat\msvc')
+          Write-Host "cargo: $((Get-Command cargo -ErrorAction Stop).Source)"
           cargo --version
-          python winmake.py -iv -s $env:JAMI_WINDOWS_SDK -b yffi
+          python --version
+          python winmake.py -iv -v -s $env:JAMI_WINDOWS_SDK -b yffi
           if ($LASTEXITCODE -ne 0) {
             exit $LASTEXITCODE
           }
