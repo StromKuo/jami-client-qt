@@ -224,6 +224,13 @@ jobs:
             throw "Windows SDK not found under $sdkRoot"
           }
 
+          $daemonEnvPatch = Join-Path $env:GITHUB_WORKSPACE '.github\ci\daemon-msvc-env-parser.patch'
+          git -C (Join-Path $env:GITHUB_WORKSPACE 'daemon') apply --check $daemonEnvPatch
+          git -C (Join-Path $env:GITHUB_WORKSPACE 'daemon') apply $daemonEnvPatch
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Failed to apply the daemon Visual Studio environment parser patch'
+          }
+
           # The client CMake configure checks for the Y-CRDT FFI library, so
           # build yffi before initializing the client project.
           Push-Location (Join-Path $env:GITHUB_WORKSPACE 'daemon\compat\msvc')
@@ -241,13 +248,6 @@ jobs:
           git apply $clientEnvPatch
           if ($LASTEXITCODE -ne 0) {
             throw 'Failed to apply the client Visual Studio environment parser patch'
-          }
-
-          $daemonEnvPatch = Join-Path $env:GITHUB_WORKSPACE '.github\ci\daemon-msvc-env-parser.patch'
-          git -C (Join-Path $env:GITHUB_WORKSPACE 'daemon') apply --check $daemonEnvPatch
-          git -C (Join-Path $env:GITHUB_WORKSPACE 'daemon') apply $daemonEnvPatch
-          if ($LASTEXITCODE -ne 0) {
-            throw 'Failed to apply the daemon Visual Studio environment parser patch'
           }
 
           Push-Location (Join-Path $env:GITHUB_WORKSPACE 'daemon\compat\msvc')
