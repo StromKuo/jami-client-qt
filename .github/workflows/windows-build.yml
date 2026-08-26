@@ -235,38 +235,53 @@ jobs:
       - name: Build Y-CRDT FFI dependency
         shell: pwsh
         run: |
-          if (-not $env:JAMI_WINDOWS_SDK) {
-            throw 'Windows SDK version was not exported by the preparation step'
+          $transcriptPath = Join-Path $env:RUNNER_TEMP 'jami-yffi.log'
+          Start-Transcript -Path $transcriptPath -Force | Out-Null
+          try {
+            if (-not $env:JAMI_WINDOWS_SDK) {
+              throw 'Windows SDK version was not exported by the preparation step'
+            }
+
+            $cargoBin = Join-Path $env:USERPROFILE '.cargo\bin'
+            if (Test-Path (Join-Path $cargoBin 'cargo.exe')) {
+              $env:Path = "$cargoBin;$env:Path"
+              Add-Content -Path $env:GITHUB_PATH -Value $cargoBin
+            }
+            $cargoCommand = Get-Command cargo -ErrorAction SilentlyContinue
+            if (-not $cargoCommand) {
+              throw "cargo.exe was not found; checked PATH and $cargoBin"
+            }
+
+            Push-Location (Join-Path $env:GITHUB_WORKSPACE 'daemon\compat\msvc')
+            Write-Host "cargo: $($cargoCommand.Source)"
+            cargo --version
+            python --version
+            python winmake.py -iv -v -s $env:JAMI_WINDOWS_SDK -b yffi
+            if ($LASTEXITCODE -ne 0) {
+              throw "winmake yffi failed with exit code $LASTEXITCODE"
+            }
+            Pop-Location
+
+            $yrsLib = Join-Path $env:GITHUB_WORKSPACE 'daemon\contrib\build\yffi\target\release\yrs.lib'
+            $yrsHeader = Join-Path $env:GITHUB_WORKSPACE 'daemon\contrib\build\yffi\tests-ffi\include\libyrs.h'
+            if (-not (Test-Path $yrsLib)) {
+              throw "Y-CRDT library was not produced: $yrsLib"
+            }
+            if (-not (Test-Path $yrsHeader)) {
+              throw "Y-CRDT header was not produced: $yrsHeader"
+            }
+          } finally {
+            Pop-Location -ErrorAction SilentlyContinue
+            Stop-Transcript | Out-Null
           }
 
-          $cargoBin = Join-Path $env:USERPROFILE '.cargo\bin'
-          if (Test-Path (Join-Path $cargoBin 'cargo.exe')) {
-            $env:Path = "$cargoBin;$env:Path"
-            Add-Content -Path $env:GITHUB_PATH -Value $cargoBin
-          }
-          $cargoCommand = Get-Command cargo -ErrorAction SilentlyContinue
-          if (-not $cargoCommand) {
-            throw "cargo.exe was not found; checked PATH and $cargoBin"
-          }
-
-          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'daemon\compat\msvc')
-          Write-Host "cargo: $($cargoCommand.Source)"
-          cargo --version
-          python --version
-          python winmake.py -iv -v -s $env:JAMI_WINDOWS_SDK -b yffi
-          if ($LASTEXITCODE -ne 0) {
-            exit $LASTEXITCODE
-          }
-          Pop-Location
-
-          $yrsLib = Join-Path $env:GITHUB_WORKSPACE 'daemon\contrib\build\yffi\target\release\yrs.lib'
-          $yrsHeader = Join-Path $env:GITHUB_WORKSPACE 'daemon\contrib\build\yffi\tests-ffi\include\libyrs.h'
-          if (-not (Test-Path $yrsLib)) {
-            throw "Y-CRDT library was not produced: $yrsLib"
-          }
-          if (-not (Test-Path $yrsHeader)) {
-            throw "Y-CRDT header was not produced: $yrsHeader"
-          }
+      - name: Upload yffi diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jami-yffi-diagnostics
+          path: ${{ runner.temp }}/jami-yffi.log
+          if-no-files-found: ignore
 
       - name: Initialize Jami client project
         shell: pwsh
