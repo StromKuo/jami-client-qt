@@ -47,7 +47,7 @@ diff --git a/contrib/src/ffmpeg/build_ffmpeg.bat b/contrib/src/ffmpeg/build_ffmp
 diff --git a/contrib/src/ffmpeg/windows-configure-make.sh b/contrib/src/ffmpeg/windows-configure-make.sh
 --- a/contrib/src/ffmpeg/windows-configure-make.sh
 +++ b/contrib/src/ffmpeg/windows-configure-make.sh
-@@ -213,5 +213,132 @@
+@@ -213,5 +213,149 @@
  set -x
  set -e
 +# Keep the main FFmpeg Makefile beside the generated build Makefile. The
@@ -94,11 +94,21 @@ diff --git a/contrib/src/ffmpeg/windows-configure-make.sh b/contrib/src/ffmpeg/w
 +        printf '%s\n' '    rmdir "$chunk_dir" 2>/dev/null || true'
 +        printf '%s\n' '}'
 +        printf '%s\n' 'trap cleanup EXIT'
-+        printf '%s\n' 'members=()'
++        printf '%s\n' 'member_args=()'
 +        printf '%s\n' 'for argument in "$@"; do'
 +        printf '%s\n' '    case "$argument" in'
-+        printf '%s\n' '        @*) echo "LIB response members are not supported" >&2; exit 1 ;;'
++        printf '%s\n' '        @*)'
++        printf '%s\n' '            list_file=${argument#@}'
++        printf '%s\n' '            if [ ! -f "$list_file" ]; then echo "LIB member list not found: $list_file" >&2; exit 1; fi'
++        printf '%s\n' '            while IFS= read -r list_member || [ -n "$list_member" ]; do'
++        printf '%s\n' '                if [ -n "$list_member" ]; then member_args+=("$list_member"); fi'
++        printf '%s\n' '            done < "$list_file"'
++        printf '%s\n' '            ;;'
++        printf '%s\n' '        *) member_args+=("$argument") ;;'
 +        printf '%s\n' '    esac'
++        printf '%s\n' 'done'
++        printf '%s\n' 'members=()'
++        printf '%s\n' 'for argument in "${member_args[@]}"; do'
 +        printf '%s\n' '    member_path=$(to_absolute_path "$argument")'
 +        printf '%s\n' '    if [ ! -f "$member_path" ]; then'
 +        printf '%s\n' '        case "$member_path" in'
@@ -154,6 +164,13 @@ diff --git a/contrib/src/ffmpeg/windows-configure-make.sh b/contrib/src/ffmpeg/w
 +    printf '%s\n' 'override CXXDEP ='
 +    printf 'include ffmpeg-main-makefile\n'
 +} > Makefile
++for library in libavdevice/libavdevice.lib libavfilter/libavfilter.lib libavformat/libavformat.lib libavcodec/libavcodec.lib libavutil/libavutil.lib libswresample/libswresample.lib libswscale/libswscale.lib; do
++    printf '%s\n' "$library:"
++    printf '\t%s\n' '$(shell : > "$@.members")'
++    printf '\t%s\n' '$(foreach member,$^,$(shell printf "%s\n" "$(member)" >> "$@.members"))'
++    printf '\t%s\n' '../../../jami-lib-wrapper.sh rc $@ @$@.members'
++    printf '\t%s\n' '$(RM) $@.members'
++done >> Makefile
 +if [ ! -f ../../../tools/Makefile ]; then
 +    echo "FFmpeg tools Makefile disappeared during configure; restoring tools from the source archive"
 +    archive=$(find "$DIR/../../tarballs" -maxdepth 1 -type f -name 'ffmpeg_*.tar.xz' -print -quit)
