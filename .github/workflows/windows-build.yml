@@ -216,6 +216,24 @@ jobs:
             Remove-Item -LiteralPath $ffmpegStateFile -Force
           }
 
+          $sdkRoot = Join-Path ${env:ProgramFiles(x86)} 'Windows Kits\10\Lib'
+          $sdk = Get-ChildItem -LiteralPath $sdkRoot -Directory |
+            Sort-Object -Property Name -Descending |
+            Select-Object -First 1 -ExpandProperty Name
+          if (-not $sdk) {
+            throw "Windows SDK not found under $sdkRoot"
+          }
+
+          # The client CMake configure checks for the Y-CRDT FFI library, so
+          # build yffi before initializing the client project.
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'daemon\compat\msvc')
+          cargo --version
+          python winmake.py -iv -s $sdk -b yffi
+          if ($LASTEXITCODE -ne 0) {
+            exit $LASTEXITCODE
+          }
+          Pop-Location
+
           python extras/scripts/build-windows.py --init --qt "$env:QT_ROOT_DIR"
 
           $clientEnvPatch = Join-Path $env:GITHUB_WORKSPACE '.github\ci\client-msvc-env-parser.patch'
@@ -232,20 +250,7 @@ jobs:
             throw 'Failed to apply the daemon Visual Studio environment parser patch'
           }
 
-          $sdkRoot = Join-Path ${env:ProgramFiles(x86)} 'Windows Kits\10\Lib'
-          $sdk = Get-ChildItem -LiteralPath $sdkRoot -Directory |
-            Sort-Object -Property Name -Descending |
-            Select-Object -First 1 -ExpandProperty Name
-          if (-not $sdk) {
-            throw "Windows SDK not found under $sdkRoot"
-          }
-
           Push-Location (Join-Path $env:GITHUB_WORKSPACE 'daemon\compat\msvc')
-          cargo --version
-          python winmake.py -iv -s $sdk -b yffi
-          if ($LASTEXITCODE -ne 0) {
-            exit $LASTEXITCODE
-          }
           python winmake.py -iv -s $sdk -b daemon
           if ($LASTEXITCODE -ne 0) {
             exit $LASTEXITCODE
