@@ -24,6 +24,9 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
       - name: Apply CI-only FFmpeg source-root workaround
         shell: pwsh
         run: |
@@ -238,6 +241,11 @@ jobs:
           }
 
           Push-Location (Join-Path $env:GITHUB_WORKSPACE 'daemon\compat\msvc')
+          cargo --version
+          python winmake.py -iv -s $sdk -b yffi
+          if ($LASTEXITCODE -ne 0) {
+            exit $LASTEXITCODE
+          }
           python winmake.py -iv -s $sdk -b daemon
           if ($LASTEXITCODE -ne 0) {
             exit $LASTEXITCODE
