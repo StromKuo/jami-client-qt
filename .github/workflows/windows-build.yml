@@ -55,7 +55,7 @@ jobs:
           }
 
           $amfInclude = Join-Path $amfRoot 'amf\public\include'
-          $amfDestination = Join-Path $env:GITHUB_WORKSPACE 'daemon\compat\msvc\include\AMF'
+          $amfDestination = Join-Path $env:GITHUB_WORKSPACE 'daemon\contrib\msvc\include\AMF'
           if (-not (Test-Path (Join-Path $amfInclude 'core\Version.h'))) {
             throw "AMD AMF headers not found under $amfInclude"
           }
