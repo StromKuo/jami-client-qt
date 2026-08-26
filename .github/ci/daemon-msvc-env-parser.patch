@@ -1,0 +1,14 @@
+diff --git a/compat/msvc/winmake.py b/compat/msvc/winmake.py
+--- a/compat/msvc/winmake.py
++++ b/compat/msvc/winmake.py
+@@ -148,7 +148,7 @@ def getVSEnv(arch='x64', platform='', version=''):
+     p = subprocess.Popen(env_cmd,
+                          shell=True,
+                          stdout=subprocess.PIPE)
+     stdout, _ = p.communicate()
+     out = stdout.decode('utf-8', errors='ignore').split("\r\n")[5:-1]
+-    return dict(s.split('=', 1) for s in out)
++    return dict(s.split('=', 1) for s in out if '=' in s)
+ 
+ 
+ def getCMakeGenerator(vs_version):

@@ -191,6 +191,20 @@ jobs:
 
           python extras/scripts/build-windows.py --init --qt "$env:QT_ROOT_DIR"
 
+          $clientEnvPatch = Join-Path $env:GITHUB_WORKSPACE '.github\ci\client-msvc-env-parser.patch'
+          git apply --check $clientEnvPatch
+          git apply $clientEnvPatch
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Failed to apply the client Visual Studio environment parser patch'
+          }
+
+          $daemonEnvPatch = Join-Path $env:GITHUB_WORKSPACE '.github\ci\daemon-msvc-env-parser.patch'
+          git -C (Join-Path $env:GITHUB_WORKSPACE 'daemon') apply --check $daemonEnvPatch
+          git -C (Join-Path $env:GITHUB_WORKSPACE 'daemon') apply $daemonEnvPatch
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Failed to apply the daemon Visual Studio environment parser patch'
+          }
+
           $sdkRoot = Join-Path ${env:ProgramFiles(x86)} 'Windows Kits\10\Lib'
           $sdk = Get-ChildItem -LiteralPath $sdkRoot -Directory |
             Sort-Object -Property Name -Descending |

@@ -1,0 +1,13 @@
+diff --git a/extras/scripts/build-windows.py b/extras/scripts/build-windows.py
+--- a/extras/scripts/build-windows.py
++++ b/extras/scripts/build-windows.py
+@@ -161,7 +161,7 @@ def get_vs_env(arch="x64", _platform="", version=""):
+     env_cmd = f'set path=%path:"=% && {vs_env_cmd} && set'
+     proc = subprocess.Popen(env_cmd, shell=True, stdout=subprocess.PIPE)
+     stdout, _ = proc.communicate()
+     out = stdout.decode("utf-8", errors="ignore").split("\r\n")[5: -1]
+-    return dict(s.split("=", 1) for s in out)
++    return dict(s.split("=", 1) for s in out if "=" in s)
+ 
+ 
+ def get_vs_env_cmd(arch="x64", _platform="", version=""):
