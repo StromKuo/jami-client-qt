@@ -40,7 +40,7 @@ jobs:
         with:
           version: '6.10.3'
           arch: win64_msvc2022_64
-          modules: 'qtwebengine qtmultimedia qtnetworkauth qtwebchannel qtwebsockets qtwebview qt5compat qtpositioning'
+          modules: 'qtwebengine qtmultimedia qtnetworkauth qtwebchannel qtwebsockets qtwebview qt5compat qtpositioning qthttpserver'
           cache: true
 
       - name: Install AMD AMF headers
