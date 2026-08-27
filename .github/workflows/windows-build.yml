@@ -112,6 +112,25 @@ jobs:
             throw "MSYS2 bin directory not found: $msysBin"
           }
 
+          $pkgConfig = Join-Path $msysBin 'pkg-config.exe'
+          if (-not (Test-Path $pkgConfig)) {
+            $pacman = Join-Path $msysBin 'pacman.exe'
+            if (-not (Test-Path $pacman)) {
+              throw "MSYS2 pacman not found: $pacman"
+            }
+            & $pacman -S --noconfirm --needed pkgconf
+            if ($LASTEXITCODE -ne 0) {
+              throw "Failed to install MSYS2 pkgconf with exit code $LASTEXITCODE"
+            }
+          }
+          if (-not (Test-Path $pkgConfig)) {
+            throw "MSYS2 pkg-config was not installed: $pkgConfig"
+          }
+          & $pkgConfig --version
+          if ($LASTEXITCODE -ne 0) {
+            throw 'MSYS2 pkg-config verification failed'
+          }
+
           # build_ffmpeg.bat starts a login shell, so make the tool path
           # available both to this step and to subsequent workflow steps.
           $env:Path = "$msysBin;$env:Path"
